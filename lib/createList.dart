@@ -1,4 +1,3 @@
-import 'package:fellings/categoryChooice.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -8,8 +7,10 @@ import 'dbhelper.dart';
 class MultiSelectChip extends StatefulWidget {
   final List<String> reportList;
   final Function(List<String>) onSelectionChanged;
+  final Function(List<String>) onDeleteChanged;
 
-  MultiSelectChip(this.reportList, {this.onSelectionChanged});
+  MultiSelectChip(this.reportList,
+      {this.onSelectionChanged, this.onDeleteChanged});
   @override
   _MultiSelectChipState createState() => _MultiSelectChipState();
 }
@@ -22,19 +23,27 @@ class _MultiSelectChipState extends State<MultiSelectChip> {
     widget.reportList.forEach((item) {
       choices.add(Container(
         padding: const EdgeInsets.all(2.0),
-        child: ChoiceChip(
-          label: Text(item),
-          selectedColor: Colors.teal[100],
-          backgroundColor: Colors.white,
-          selected: selectedChoices.contains(item),
-          onSelected: (selected) {
+        child: GestureDetector(
+          onLongPress: () {
             setState(() {
-              selectedChoices.contains(item)
-                  ? selectedChoices.remove(item)
-                  : selectedChoices.add(item);
-              widget.onSelectionChanged(selectedChoices);
+              widget.reportList.remove(item);
+              widget.onDeleteChanged(widget.reportList);
             });
           },
+          child: FilterChip(
+            label: Text(item),
+            selectedColor: Colors.teal[100],
+            backgroundColor: Colors.white,
+            selected: selectedChoices.contains(item),
+            onSelected: (selected) {
+              setState(() {
+                selectedChoices.contains(item)
+                    ? selectedChoices.remove(item)
+                    : selectedChoices.add(item);
+                widget.onSelectionChanged(selectedChoices);
+              });
+            },
+          ),
         ),
       ));
     });
@@ -79,7 +88,7 @@ class ListOfCards extends StatefulWidget {
   final Function(Problem) onChangeMainList;
   Problem p;
   final dbHelper;
-  ListOfCards(this.p, this.dbHelper,this.onChangeMainList);
+  ListOfCards(this.p, this.dbHelper, this.onChangeMainList);
   _ListOfCardsState createState() => _ListOfCardsState();
 }
 
@@ -98,7 +107,6 @@ class _ListOfCardsState extends State<ListOfCards> {
   Future<String> readFile() async {
     try {
       final file = await _localFile;
-
       String content = await file.readAsString();
       return content;
     } catch (e) {
@@ -128,10 +136,12 @@ class _ListOfCardsState extends State<ListOfCards> {
     String t;
     readFile().then((String text) {
       t = text;
-      category = t.split('\r\n');
+      category = t.split('\n');
     });
     for (int i = 0; i < category.length; i++) {
       if (category[i] == ' ') category.removeAt(i);
+      if (category[i] == '') category.removeAt(i);
+      if (category[i] == '\n') category.removeAt(i);
     }
   }
 
@@ -141,8 +151,9 @@ class _ListOfCardsState extends State<ListOfCards> {
   }
 
   Future<File> writeFile(String text) async {
+    print('HEY '+text);
     final file = await _localFile;
-    return file.writeAsString('$text\r\n', mode: FileMode.append);
+    return file.writeAsString('$text\r\n');
   }
 
   void update(Problem a, String category) async {
@@ -191,6 +202,11 @@ class _ListOfCardsState extends State<ListOfCards> {
                         children: [
                           MultiSelectChip(
                             category,
+                            onDeleteChanged: (categoryNew) {
+                              setState(() {
+                                category = categoryNew;
+                              });
+                            },
                             onSelectionChanged: (selectedList) {
                               setState(() {
                                 selectedReportList = selectedList;
@@ -217,7 +233,14 @@ class _ListOfCardsState extends State<ListOfCards> {
                                 setState(() {
                                   if (text.isNotEmpty) {
                                     category.add(text);
-                                    writeFile(text);
+                                    String p = '';
+                                    category.forEach((element) {
+                                      if (element != '' && element != ' ' && element!='\n') {
+                                        p += element;
+                                        p += '\n';
+                                      }
+                                    });
+                                    writeFile(p);
                                   }
                                   _newCategory.clear();
                                 });
@@ -228,10 +251,6 @@ class _ListOfCardsState extends State<ListOfCards> {
                                   hintText: 'Новая категория'),
                             ),
                           ),
-                          FlatButton(
-                            child: const Text('Готово'),
-                            onPressed: () {},
-                          )
                         ],
                       )
                     ],

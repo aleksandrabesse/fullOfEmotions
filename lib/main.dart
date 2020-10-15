@@ -11,9 +11,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       home: MyHomePage(),
@@ -50,7 +48,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void add() async {
     Problem newP =
-        Problem(name: first.text, id: await _insert(first.text), category: 'Y');
+        Problem(name: first.text, id: await _insert(first.text), category: '');
     setState(() {
       problems.add(newP);
     });
@@ -97,6 +95,10 @@ class _MyHomePageState extends State<MyHomePage> {
                               _insert(first.text);
                               first.clear();
                             },
+                            onSubmitted: (String text)  {
+                              _insert(text);
+                              first.clear();
+                            },
                             controller: first,
                             decoration: InputDecoration(
                                 border: InputBorder.none,
@@ -130,7 +132,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // row to insert
     Map<String, dynamic> row = {
       DatabaseHelper.columnName: name,
-      DatabaseHelper.columnMiles: 'Y'
+      DatabaseHelper.columnMiles: ''
     };
     Problem car = Problem.fromMap(row);
     final id = await dbHelper.insert(car);
